@@ -16,5 +16,8 @@
     "url": "https://github.com/Abdulbasit79/tiny-app/issues"
   },
   "homepage": "https://github.com/Abdulbasit79/tiny-app#readme",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
 }
