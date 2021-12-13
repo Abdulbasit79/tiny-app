@@ -5,6 +5,8 @@ const app = express();
 const PORT = 8080; // default port 8080
 app.use(cookieParser());
 
+const bcrypt = require("bcryptjs");
+
 app.set("view engine", "ejs");
 
 function generateRandomString() {
@@ -163,6 +165,8 @@ app.get("/login", (req, res) => {
 app.post("/register", function (req, res) {
   let email = req.body.email;
   let password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
   if (!email || (email === "" && !password) || password === "") {
     res.status(400).send("email and password can't be blank");
     return;
@@ -180,17 +184,15 @@ app.post("/register", function (req, res) {
       return;
     }
     let id = generateRandomString();
-    console.log(`${email} ${password}`);
-    console.log(match);
+    console.log(`${email} ${hashedPassword}`);
     users[id] = {
       id: id,
       email: email,
-      password: password,
+      password: hashedPassword,
     };
 
     res.cookie("user_id", id);
     res.redirect("/urls");
-    return;
   }
 });
 
@@ -201,15 +203,19 @@ app.post("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const userEmail = req.body.username;
+  const username = req.body.username;
+  const password = req.body.password;
   const existUser = Object.values(users).find(
-    (user) => user.email === userEmail
+    (user) => user.email === username
   );
   if (existUser) {
-    res.cookie("user_id", existUser.id);
-    res.redirect("/urls");
-  } else {
-    res.send("User not exist");
+    if (bcrypt.compareSync(password, existUser.password)) {
+      console.log(user[password]);
+      res.cookie("user_id", existUser.id);
+      res.redirect("/urls");
+    } else {
+      return res.status(403).send("You have the wrong password");
+    }
   }
 });
 
