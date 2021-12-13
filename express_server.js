@@ -68,9 +68,6 @@ app.get("/hello", (req, res) => {
 
 app.get("/urls", (req, res) => {
   const userId = req.cookies["user_id"];
-  console.log(
-    Object.values(urlDatabase).filter((url) => url.userId === userId)
-  );
   const templateVars = {
     urls: Object.values(urlDatabase).filter((url) => url.userId === userId),
     user: users[userId],
@@ -79,23 +76,16 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL];
+  const shortURL = req.params.shortURL;
   if (urlDatabase[shortURL] === undefined) {
     //if they put in a shortURL that doesn't exist in our database
     res.send(
       "It appears that URL does not exist. Consider checking My URLs again or making a tinyURL for that website!"
     );
   } else {
+    const longURL = urlDatabase[req.params.shortURL].longUrl;
+
     res.redirect(longURL);
-    const longUrl = urlDatabase[shortURL].longURL;
-    res.redirect(longUrl);
-  }
-});
-app.get("/u/:shortURL", (req, res) => {
-  shortURL = req.params.shortURL;
-  if (urlDatabase.hasOwnProperty(shortURL)) {
-    let longURL = urlDatabase[shortURL];
-    res.redirect(`${longURL}`);
   }
 });
 
@@ -105,12 +95,19 @@ app.post("/urls", (req, res) => {
   res.redirect(`urls/${shortURL}`);
 });
 
-app.post("/urls/:shortURL/Delete", (req, res) => {
+app.post("/urls/:shortURL/delete", (req, res) => {
+  const userID = req.cookies["user_ID"];
   let shortURL = req.params.shortURL;
-  delete urlDatabase[shortURL];
-  res.redirect("/urls");
-});
+  if (userID === urlDatabase[shortURL].userID) {
+    delete urlDatabase[shortURL];
 
+    res.redirect("/urls");
+  } else if (userID) {
+    res.status(403).send("You are do not owner of this shortURL");
+  } else {
+    res.status(401).send("Please <a href= '/login'>login</a>");
+  }
+});
 app.get("/urls/new", (req, res) => {
   const userId = req.cookies["user_id"];
   if (!userId) {
