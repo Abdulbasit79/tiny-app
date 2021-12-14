@@ -3,6 +3,8 @@ const bcrypt = require("bcryptjs");
 const cookieSession = require("cookie-Session");
 const app = express();
 const PORT = 8080; // default port 8080
+const bodyParser = require("body-parser");
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieSession({ name: "session", secret: "notsosecretsession" }));
 // app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -168,35 +170,31 @@ app.post("/register", function (req, res) {
   const email = req.body.email;
   const password = req.body.password;
   const hashedPassword = bcrypt.hashSync(password, 10);
-
+  let id = generateRandomString();
   const user = getUserByEmail(email, users);
+  if (!email || (email === "" && !password) || password === "") {
+    res.status(400).send("email and password can't be blank");
+    return;
+  }
+  let match = false;
+  for (let i in users) {
+    if (users[i].email === email) {
+      match = true;
+    }
+  }
+
+  if (match) {
+    res.status(400).send("email already exist");
+    return;
+  }
+  console.log(`${email} ${hashedPassword}`);
   users[id] = {
     id: id,
     email: email,
     password: hashedPassword,
   };
-  if (!email || (email === "" && !password) || password === "") {
-    res.status(400).send("email and password can't be blank");
-    return;
-  } else {
-    const user = getUserByEmail(email);
-
-    let match = false;
-    for (let i in users) {
-      if (users[i].email === email && users[i].password === password) {
-        match = true;
-      }
-    }
-    if (match) {
-      res.status(400).send("email already exist");
-      return;
-    }
-    let id = generateRandomString();
-    console.log(`${email} ${hashedPassword}`);
-
-    req.session.user_id = id;
-    res.redirect("/urls");
-  }
+  req.session.user_id = id;
+  res.redirect("/urls");
 });
 
 app.post("/urls/:shortURL", (req, res) => {
@@ -208,16 +206,18 @@ app.post("/urls/:shortURL", (req, res) => {
 app.post("/login", (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
-  const existUser = Object.values(users).find(
-    (user) => user.email === username
-  );
-  if (existUser) {
-    if (bcrypt.compareSync(password, existUser.password)) {
-      console.log(user[password]);
-      req.session.user_id = id;
-      res.redirect("/urls");
-    } else {
+  const user = getUserByEmail(username, users);
+  if (!user) {
+    return res.status(403).send("you have entered a wrong email");
+  }
+
+  if (user) {
+    if (!bcrypt.compareSync(password, existUser.password)) {
       return res.status(403).send("You have the wrong password");
+    } else {
+      req.session.user_id = user.id;
+      res.redirect("/urls");
+      return;
     }
   }
 });
