@@ -40,10 +40,6 @@ const urlDatabase = {
   },
 };
 
-// const bodyParser = require("body-parser");
-// const { response } = require("express");
-// app.use(bodyParser.urlencoded({ extended: true }));
-
 const users = {
   userRandomID: {
     id: "userRandomID",
@@ -58,7 +54,7 @@ const users = {
 };
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.redirect("/urls");
 });
 
 app.get("/urls.json", (req, res) => {
@@ -70,7 +66,7 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const userId = req.session.user_id;
+  const userId = req.session.userID;
   const templateVars = {
     urls: Object.values(urlDatabase).filter((url) => url.userId === userId),
     user: users[userId],
@@ -99,20 +95,29 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const userID = req.session.user_id;
-  let shortURL = req.params.shortURL;
-  if (userID === urlDatabase[shortURL].userID) {
-    delete urlDatabase[shortURL];
+  console.log("req.session.userID", req.session.userID);
+  console.log("urldatabase", urlDatabase);
 
-    res.redirect("/urls");
-  } else if (userID) {
-    res.status(403).send("You are do not owner of this shortURL");
-  } else {
+  const userID = req.session.userID;
+  let urlObj = urlDatabase[req.params.shortURL];
+  // { id: 'cmx4gej', longUrl: 'http://www.nba.com', userId: '37f4w6l' }
+
+  if (!urlObj) {
     res.status(401).send("Please <a href= '/login'>login</a>");
+    return;
   }
+  // TypeError: Cannot read property 'userID' of undefined
+
+  if (userID !== urlObj.userId) {
+    res.status(403).send("You are not the owner of this shortURL");
+    return;
+  }
+  delete urlDatabase[req.params.shortURL];
+
+  res.redirect("/urls");
 });
 app.get("/urls/new", (req, res) => {
-  const userId = req.session.user_id;
+  const userId = req.session.userID;
 
   if (!userId) {
     return res.redirect("/login");
@@ -124,7 +129,7 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls/new", (req, res) => {
-  const userId = req.session.user_id;
+  const userId = req.session.userID;
 
   if (!userId) {
     return res.redirect("/login");
@@ -140,37 +145,42 @@ app.post("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
+  const userId = req.session.userID;
+
   const long = urlDatabase[req.params.shortURL];
-  let templateVars = { shortURL: req.params.shortURL, longURL: long };
+  let templateVars = {
+    shortURL: req.params.shortURL,
+    longURL: long,
+    user: users[userId],
+  };
   res.render("urls_show", templateVars);
 });
 
-app.get("/urls/:shortURL", (req, res) => {
-  const shortURL = req.params.shortURL;
-  let templateVars = { shortURL, longURL: urlDatabase[shortURL] };
-  res.render("urls_show", templateVars);
-});
+// app.get("/urls/:shortURL", (req, res) => {
+//   const shortURL = req.params.shortURL;
+//   let templateVars = { shortURL, longURL: urlDatabase[shortURL] };
+//   res.render("urls_show", templateVars);
+// });
 app.get("/register", function (req, res) {
   //("REGISTER PAGE TEST");
-  if (req.session.user_id) {
+  if (req.session.userID) {
     return res.redirect("/urls");
   }
 
   res.render("register");
 });
 app.get("/login", (req, res) => {
-  if (req.session.user_id) {
+  if (req.session.userID) {
     return res.redirect("/urls");
   }
   res.render("login");
 });
 
 app.post("/register", function (req, res) {
-  console.log(req.body);
   const email = req.body.email;
   const password = req.body.password;
   const hashedPassword = bcrypt.hashSync(password, 10);
-  let id = generateRandomString();
+  let userID = generateRandomString();
   const user = getUserByEmail(email, users);
   if (!email || (email === "" && !password) || password === "") {
     res.status(400).send("email and password can't be blank");
@@ -187,13 +197,13 @@ app.post("/register", function (req, res) {
     res.status(400).send("email already exist");
     return;
   }
-  console.log(`${email} ${hashedPassword}`);
-  users[id] = {
-    id: id,
+  // console.log(`${email} ${hashedPassword}`);
+  users[userID] = {
+    id: userID,
     email: email,
     password: hashedPassword,
   };
-  req.session.user_id = id;
+  req.session.userID = userID;
   res.redirect("/urls");
 });
 
@@ -215,7 +225,7 @@ app.post("/login", (req, res) => {
     if (!bcrypt.compareSync(password, existUser.password)) {
       return res.status(403).send("You have the wrong password");
     } else {
-      req.session.user_id = user.id;
+      req.session.userID = user.id;
       res.redirect("/urls");
       return;
     }
@@ -223,7 +233,7 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  req.session.user_id = null;
+  req.session = null;
   res.redirect("/urls");
 });
 

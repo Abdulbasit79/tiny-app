@@ -18,7 +18,7 @@
             <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
         </div>
         </div>
-        <% if (locals.user){ %>
+        <% if (typeof user !== "undefined"){ %>
           <div>
 
             <form id="logout" method="POST" action="/logout" style="font-size: 1.05em">
