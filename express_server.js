@@ -53,9 +53,15 @@ const users = {
   },
 };
 
-app.get("/", (req, res) => {
-  res.redirect("/urls");
-});
+
+  app.get("/", (req, res) => {
+    if (req.session.userID) {
+      res.redirect("/urls");
+  
+    } else {
+    res.redirect("/login");
+    }
+  });
 
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
@@ -67,11 +73,19 @@ app.get("/hello", (req, res) => {
 
 app.get("/urls", (req, res) => {
   const userId = req.session.userID;
+  if(!req.session.userID) {
+    res.send("<html><body>please login</body></html>\n");
+  
+  } else {
+
+  
   const templateVars = {
     urls: Object.values(urlDatabase).filter((url) => url.userId === userId),
     user: users[userId],
   };
   res.render("urls_index", templateVars);
+}
+
 });
 
 app.get("/u/:shortURL", (req, res) => {
@@ -106,7 +120,6 @@ app.post("/urls/:shortURL/delete", (req, res) => {
     res.status(401).send("Please <a href= '/login'>login</a>");
     return;
   }
-  // TypeError: Cannot read property 'userID' of undefined
 
   if (userID !== urlObj.userId) {
     res.status(403).send("You are not the owner of this shortURL");
@@ -145,15 +158,35 @@ app.post("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
+  console.log(req)
   const userId = req.session.userID;
+ if (!req.session.userID) {
+  res.send("<html><body>restricted you do not have access please login</body></html>\n");
 
-  const long = urlDatabase[req.params.shortURL];
-  let templateVars = {
-    shortURL: req.params.shortURL,
-    longURL: long,
-    user: users[userId],
-  };
-  res.render("urls_show", templateVars);
+ } else {  console.log(req.session.userID,"req.session.userID")
+ console.log(urlDatabase[req.params.shortURL],"urlDatabase[req.params.shortURL]")
+  console.log(req.params.shortURL,"req.params.shortURL")
+ console.log(urlDatabase,"urlDatabase")
+  if(req.session.userID === urlDatabase[req.params.shortURL].userId) {
+    const long = urlDatabase[req.params.shortURL];
+    let templateVars = {
+      shortURL: req.params.shortURL,
+      longURL: long,
+      user: users[userId],
+    };
+    res.render("urls_show", templateVars);
+   
+  }
+  else {
+    res.send("<html><body>restricted you do not have access</body></html>\n");
+
+  }
+}
+  //  console.log(res,"res")
+  // using the short url gone be in your response you are going to checkthe database for the userid that owns that short urls 
+  //compare userid on line 161 to the user id that you got from the database
+  //if it is the same do the information below otherwise do line 162 to 165 but with error message you do no have access
+
 });
 
 // app.get("/urls/:shortURL", (req, res) => {
@@ -177,9 +210,10 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/register", function (req, res) {
+  console.log(users)
   const email = req.body.email;
   const password = req.body.password;
-  const hashedPassword = bcrypt.hashSync(password, 10);
+  const hashedPassword = bcrypt.hashSync(password);
   let userID = generateRandomString();
   const user = getUserByEmail(email, users);
   if (!email || (email === "" && !password) || password === "") {
@@ -217,12 +251,14 @@ app.post("/login", (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
   const user = getUserByEmail(username, users);
+  console.log(username,password,user,"***")
+  console.log(users)
   if (!user) {
-    return res.status(403).send("you have entered a wrong email");
+    return res.status(403).send("you have entered a user does not exist");
   }
 
   if (user) {
-    if (!bcrypt.compareSync(password, existUser.password)) {
+    if (!bcrypt.compareSync(password, user.password)) {
       return res.status(403).send("You have the wrong password");
     } else {
       req.session.userID = user.id;
@@ -234,7 +270,7 @@ app.post("/login", (req, res) => {
 
 app.post("/logout", (req, res) => {
   req.session = null;
-  res.redirect("/urls");
+  res.redirect("/login");
 });
 
 app.listen(PORT, () => {
