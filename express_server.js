@@ -1,3 +1,4 @@
+//App configurations
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const cookieSession = require("cookie-Session");
@@ -8,34 +9,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieSession({ name: "session", secret: "notsosecretsession" }));
 
 app.set("view engine", "ejs");
+//functions and databases
 
 const { getUserByEmail, generateRandomString} = require('./helpers');
 
-const urlDatabase = {
-  b2xVn2: {
-    id: "b2xVn2",
-    longUrl: "http://www.lighthouselabs.ca",
-    userId: "userRandomID",
-  },
-  "9sm5xK": {
-    id: "9sm5xK",
-    longUrl: "http://www.google.com",
-    userId: "user2RandomID",
-  },
-};
-
-const users = {
-  userRandomID: {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: "123",
-  },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "123",
-  },
-};
+const urlDatabase = {};
+const users = {};
 
 
   app.get("/", (req, res) => {
@@ -92,8 +71,6 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  console.log("req.session.userID", req.session.userID);
-  console.log("urldatabase", urlDatabase);
 
   const userID = req.session.userID;
   let urlObj = urlDatabase[req.params.shortURL];
@@ -140,16 +117,11 @@ app.post("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  console.log(req)
   const userId = req.session.userID;
- if (!req.session.userID) {
+ if (!userId) {
   res.send("<html><body>restricted you do not have access please login</body></html>\n");
 
- } else {  console.log(req.session.userID,"req.session.userID")
- console.log(urlDatabase[req.params.shortURL],"urlDatabase[req.params.shortURL]")
-  console.log(req.params.shortURL,"req.params.shortURL")
- console.log(urlDatabase,"urlDatabase")
-  if(req.session.userID === urlDatabase[req.params.shortURL].userId) {
+ } else if (userId === urlDatabase[req.params.shortURL].userId) {
     const long = urlDatabase[req.params.shortURL];
     let templateVars = {
       shortURL: req.params.shortURL,
@@ -163,7 +135,7 @@ app.get("/urls/:shortURL", (req, res) => {
     res.send("<html><body>restricted you do not have access</body></html>\n");
 
   }
-}
+
  
 
 });
@@ -184,7 +156,7 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/register", function (req, res) {
-  console.log(users)
+ 
   const email = req.body.email;
   const password = req.body.password;
   const hashedPassword = bcrypt.hashSync(password);
