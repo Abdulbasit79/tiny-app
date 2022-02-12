@@ -2,31 +2,15 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const cookieSession = require("cookie-Session");
 const app = express();
-const PORT = 8080; // default port 8080
+const PORT = 8080; 
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieSession({ name: "session", secret: "notsosecretsession" }));
-// app.use(bodyParser.urlencoded({ extended: true }));
 
 app.set("view engine", "ejs");
 
-function generateRandomString() {
-  let random = Math.random().toString(36).slice(6);
-  console.log(random);
-  return random;
-}
-const getUserByEmail = function (email) {
-  const uservalues = Object.values(users);
+const { getUserByEmail, generateRandomString} = require('./helpers');
 
-  for (const user of uservalues) {
-    if (user.email === email) {
-      return user;
-    }
-  }
-  return null;
-};
-
-// console.log(generateRandomString("youtube.com"));
 const urlDatabase = {
   b2xVn2: {
     id: "b2xVn2",
@@ -91,7 +75,6 @@ app.get("/urls", (req, res) => {
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   if (urlDatabase[shortURL] === undefined) {
-    //if they put in a shortURL that doesn't exist in our database
     res.send(
       "It appears that URL does not exist. Consider checking My URLs again or making a tinyURL for that website!"
     );
@@ -114,7 +97,6 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
   const userID = req.session.userID;
   let urlObj = urlDatabase[req.params.shortURL];
-  // { id: 'cmx4gej', longUrl: 'http://www.nba.com', userId: '37f4w6l' }
 
   if (!urlObj) {
     res.status(401).send("Please <a href= '/login'>login</a>");
@@ -182,20 +164,12 @@ app.get("/urls/:shortURL", (req, res) => {
 
   }
 }
-  //  console.log(res,"res")
-  // using the short url gone be in your response you are going to checkthe database for the userid that owns that short urls 
-  //compare userid on line 161 to the user id that you got from the database
-  //if it is the same do the information below otherwise do line 162 to 165 but with error message you do no have access
+ 
 
 });
 
-// app.get("/urls/:shortURL", (req, res) => {
-//   const shortURL = req.params.shortURL;
-//   let templateVars = { shortURL, longURL: urlDatabase[shortURL] };
-//   res.render("urls_show", templateVars);
-// });
+
 app.get("/register", function (req, res) {
-  //("REGISTER PAGE TEST");
   if (req.session.userID) {
     return res.redirect("/urls");
   }
@@ -231,8 +205,7 @@ app.post("/register", function (req, res) {
     res.status(400).send("email already exist");
     return;
   }
-  // console.log(`${email} ${hashedPassword}`);
-  users[userID] = {
+    users[userID] = {
     id: userID,
     email: email,
     password: hashedPassword,
@@ -248,11 +221,11 @@ app.post("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const username = req.body.username;
+  const username = req.body.email;
   const password = req.body.password;
   const user = getUserByEmail(username, users);
-  console.log(username,password,user,"***")
-  console.log(users)
+ 
+  
   if (!user) {
     return res.status(403).send("you have entered a user does not exist");
   }
@@ -266,7 +239,7 @@ app.post("/login", (req, res) => {
       return;
     }
   }
-});
+ }); 
 
 app.post("/logout", (req, res) => {
   req.session = null;
