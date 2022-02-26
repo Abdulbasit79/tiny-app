@@ -14,7 +14,9 @@ app.set("view engine", "ejs");
 const { getUserByEmail, generateRandomString} = require('./helpers');
 
 const urlDatabase = {};
-const users = {};
+const users = {
+  "1": { email: "b@b.com", password: "$2a$10$rDfYbLILnEiCwI7X8h0qwOWPwwqH7hOP15.wYk496sES/606tGGrG", id: 1 }
+};
 
 
   app.get("/", (req, res) => {
@@ -64,11 +66,11 @@ app.get("/u/:shortURL", (req, res) => {
   }
 });
 
-app.post("/urls", (req, res) => {
-  const shortURL = generateRandomString();
-  urlDatabase[shortURL] = req.body.longURL;
-  res.redirect(`urls/${shortURL}`);
-});
+// app.post("/urls", (req, res) => {
+//   const shortURL = generateRandomString();
+//   urlDatabase[shortURL] = req.body.longURL;
+//   res.redirect(`urls/${shortURL}`);
+// });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
 
@@ -100,7 +102,7 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new", templateVars);
 });
 
-app.post("/urls/new", (req, res) => {
+app.post("/urls", (req, res) => {
   const userId = req.session.userID;
 
   if (!userId) {
@@ -113,6 +115,7 @@ app.post("/urls/new", (req, res) => {
     longUrl,
     userId,
   };
+  console.log("++++++++", id)
   res.redirect("/urls");
 });
 
@@ -160,6 +163,7 @@ app.post("/register", function (req, res) {
   const email = req.body.email;
   const password = req.body.password;
   const hashedPassword = bcrypt.hashSync(password);
+  console.log("hashedPassword + ", hashedPassword)
   let userID = generateRandomString();
   const user = getUserByEmail(email, users);
   if (!email || (email === "" && !password) || password === "") {
@@ -221,3 +225,13 @@ app.post("/logout", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
+
+
+
+
+
+
+
+
+
+    
